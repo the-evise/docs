@@ -13,7 +13,8 @@ In practice, most components are partially uncontrolled—mixing internal state 
 ## Evidence & Implementation
 
 ### Definition
-An uncontrolled React component operates with a self-contained state model. It emits events outward but does not accept state directives from its parent. Props function as parameters rather than control channels. By keeping update authority internal, the component reduces reconciliation pressure and maintains predictable behavior.
+An uncontrolled React component maintains a self-contained state model. It emits events outward but does not accept state directives from its parent. Props act as configuration parameters rather than control channels.
+By retaining update authority internally, the component minimizes reconciliation pressure and preserves predictable behavior.
 
 ### When to Use
 
@@ -36,23 +37,23 @@ An uncontrolled React component operates with a self-contained state model. It e
 
 ### Mechanics
 
-1. Internal State Ownership:
-   All behavioral state is maintained within the component using mechanisms such as useRef, useState, or local state machines.
+**1. Internal State Ownership**
+   All behavioral state is owned by the component itself, managed via `useRef`, `useState`, or localized state machines.
 
-2. Local Interaction Processing:
-   Interaction events are handled entirely inside the component, and no transitional or intermediate values are propagated upward.
+**2. Local Interaction Processing**
+   User Interactions are fully processed within the component. Transitional and intermediate values are not propagated to parent layers.
 
-3. Output-Only Emission:
-   The component emits discrete output signals only after internal state transitions, allowing parents to observe outcomes without directing behavior.
+**3. Output-Only Emission**
+   The component emits discrete output signals only after internal state transitions compelete, enabling parents to observe outcomes without influencing behavior.
 
-4. Static Configuration Props:
-   External inputs are limited to non-behavioral configuration props (e.g., disabled, readOnly, mode flags) that do not alter the internal control flow.
+**4. Static Configuration Props**
+   External inputs are restricted to non-behavioral configuration props (e.g., `disabled`, `readOnly`, mode flags) that do not alter the internal control flow.
 
-5. Transition Continuity Across Renders:
-   Internal state transitions persist across parent-driven re-renders, ensuring that ongoing behavior is never reset.
+**5. Transition Continuity Across Renders**
+   Internal state transitions persist across parent-driven re-renders, ensuring ongoing interactions are never reset or interrupted.
 
-6. Shallow Reconciliation Boundary:
-   The component keeps a minimal reconciliation surface to support micro-rendering and reduce unnecessary render propagation to parent components.
+**6. Shallow Reconciliation Boundary**
+   The component maintains a minimal reconciliation surface, supporting micro-rendering and preventing unnecessary render propagation up the component tree.
 
 ### Implementation
 
@@ -121,24 +122,28 @@ export function Parent() {
 
 ### Scalability Notes
 
-How the Uncontrolled pattern behaves at scale:
+How the uncontrolled pattern behaves at scale.
 
 #### Strengths
 
-- Predictable performance
 - Small, stable API surfaces
-- Lower conciliation cost
-- Encapsulation
+- Reduced reconciliation cost
+- Predictable performance characteristics
+- Strong encapsulation boundaries
 
 #### Weaknesses
 
-- Harder to orchestrate
-- Internal debugging
-- Output events focused testing
-- Drifted logic from higher-level architectural rules
+- Harder to orchestrate across components
+- Limited internal state visibility during debugging
+- Testing relies primarily on output events
+- Risk of logic drifting from higher-level architectural rules
 
 #### System-Level Considerations
 
-- 
+- Avoid blanket adoption across the entire UI
+- Use in interaction-heavy islands within large applications
+- Combine with Controllers or Facades when coordination is required without sacrificing isolation
 
 ### Related Concepts
+
+TBD
