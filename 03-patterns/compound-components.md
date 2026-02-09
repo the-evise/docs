@@ -1,93 +1,67 @@
 # Compound Components Pattern
 
-## Problem Signal
-- Coordinating related UI elements through explicit prop wiring forces prop drilling across intermediate components, increasing coupling and reducing composability
-- Centralizing conditional rendering logic in a single parent component collapses layout flexibility and results in rigid, monolithic component structures
-- Sharing state across sibling components without an internal coordination mechanism leads to duplicated logic, inconsistent behavrior, or ad-hoc synchronization hacks
-- Exposing internal orchestration details through public props expands component APIs unnecessarily and leaks implementation concerns to consumers
+## Problem Signals
+- Prop drilling across related UI elements increases coupling and reduces composability
+- Centralized conditional rendering makes layouts rigid and monolithic
+- Sibling state sync without a contract causes inconsistent behavior and bloated APIs
 
 ## Core Idea
 
-The compound component pattern enables a set of related components to share state and behavior implicitly, while allwing consumers to cntrol structures and layout through composition.
-
-Instead of passsing props explicitly between siblings, shared logic is centralized and exposed through a controlled internal contract.
+The compound component pattern enables a set of related components to share state and behavior implicitly, while allowing consumers to control structure and layout through composition. Shared logic is centralized behind an internal contract instead of being passed through sibling props.
 
 This pattern balances flexibility with encapsulation in complex, composable UI systems.
 
-## Evidence & Implementation
+## Reference Details
 
 ### Definition
 
-A design pattern where multiple components:
-- designed to work together
-- share internal state and behavior
-- communicate implicitly via a shared context or coordination mechanism
-The parent component defines the contract; child components consume it.
+A compound component pattern is a set of components designed to work together and share internal state and behavior through a shared coordination layer (often context). The parent component defines the contract and the child components consume it.
 
 ### When to Use
 
-- Multiple related subcomponents depend on the same internal state or behavioral logc
+- Multiple related subcomponents depend on the same internal state or behavioral logic
 - Composition control, layout or ordering of subcomponents is needed
 - Shared state is required without introducing global state or excessive prop drilling
 - Public API should support declarative, semantic composition patterns
 - Responsibilities are logically cohesive but structurally decoupled
-
-### Avoid When
+### When to Avoid
 
 - Only a single component consumes the shared state or logic
 - Component relationships are static, linear, or unlikely to change
 - The implicit usage contract increases cognitive load or misuse risk
 - Performance constraints make context propagation or re-renders unacceptable
 - Simpler patterns (local state, explicit props) provide equivalent clarity
-
 ### Mechanics
 
-1. **Centralized State Authority:**
-   A single root component owns all shared behavioral state, acting as the authoritative source of truth
+1. **Centralized State Authority:** A single root component owns all shared behavioral state, acting as the authoritative source of truth.
+2. **Implicit State Distribution:** State and actions are distributed internally through a localized coordination layer (e.g. React Context), eliminating sibling prop wiring.
+3. **Role-Bound Subcomponents:** Subcomponents are role-specific and derive all behavior exclusively from the shared contract.
+4. **Declarative Consumer Composition:** Consumers compose subcomponents declaratively, controlling structure without managing behavior.
+5. **Internal Contract Enforcement:** The root enforces a strict internal contract to prevent invalid usage.
+6. **Context-Scoped Reconciliation Boundary:** State updates are scoped to the compound components context, ensuring controlled reconciliation.
 
-2. Implicit State Distribution:
-    State and actions are distributed internally through a localized coordination layer (e.g. React Context), eliminating sibling prop wiring
-
-3. Role-Bound Subcomponents:
-   Subcomponents are role-specific and derive all behavior exclusively from the shared contract
-
-4. Declarative Consumer Composition:
-   Consumers compose subcomponents declaratively, controlling structure without managing behavior
-
-5. Internal Contract Enforcement:
-    The root enforces a strict internal contract to prevent invalid usage
-
-6. Context-Scoped Reconciliation Boundary:
-   State updates are scoped to the compound components context, ensuring controlled reconciliation
-
-### Implementation
-
-#### Core Types
+### TypeScript Example
 
 ```tsx
-// types.ts
-export interface CompoundState {
-    // Internal shared state (opaque to consumers)
-}
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-export interface CompoundActions {
-    // Internal transitions
-    dispatch?: (action: unknown) => void;
-}
+type CompoundState = {
+    activeId: string | null;
+};
 
-export interface CompoundContextValue {
+type CompoundAction = {
+    type: "select";
+    id: string;
+};
+
+type CompoundActions = {
+    dispatch: (action: CompoundAction) => void;
+};
+
+type CompoundContextValue = {
     state: CompoundState;
     actions: CompoundActions;
-}
-
-```
-
-#### Context Definition
-
-```tsx
-// context.ts
-import { createContext, useContext } from "react";
-import { CompoundContextValue } from "./types";
+};
 
 const CompoundContext = createContext<CompoundContextValue | null>(null);
 
@@ -103,43 +77,18 @@ export function useCompoundContext(): CompoundContextValue {
     return ctx;
 }
 
-export { CompoundContext };
-```
+export function Root(props: { children: React.ReactNode }) {
+    const [state, setState] = useState<CompoundState>({
+        activeId: null,
+    });
 
-#### Root Component (State Owner & Orchestrator)
-
-```tsx
-// Root.tsx
-import { useCallback, useMemo, useState } from "react";
-import { CompoundContext } from "./context";
-import { CompoundState, CompoundActions } from "./types";
-
-export interface CompoundRootProps {
-    children: React.ReactNode;
-}
-
-export function Root(props: CompoundRootProps) {
-    /*
-        Root owns:
-        - Shared state
-        - Transitions
-        - Coordination logic
-        - Context boundary
-    */
-
-    const [state, setState] = useState<CompoundState>({});
-
-    const dispatch = useCallback((action: unknown) => {
-        /*
-            Interpret and apply transitions.
-            Details intentionally hidden.
-        */
+    const dispatch = useCallback((action: CompoundAction) => {
+        if (action.type === "select") {
+            setState({ activeId: action.id });
+        }
     }, []);
 
-    const actions: CompoundActions = useMemo(
-        () => ({ dispatch }),
-        [dispatch]
-    );
+    const actions: CompoundActions = useMemo(() => ({ dispatch }), [dispatch]);
 
     const value = useMemo(
         () => ({ state, actions }),
@@ -152,63 +101,26 @@ export function Root(props: CompoundRootProps) {
         </CompoundContext.Provider>
     );
 }
-```
 
-#### Child Components (Implicitly Wired)
+export function Item(props: { id: string; children: React.ReactNode }) {
+    const { state } = useCompoundContext();
+    const isActive = state.activeId === props.id;
 
-Each child component:
-- Accesses shared state via context
-- Does not receive coordination props
-- Remains unaware of siblings
-
-```tsx
-// Item.tsx
-import { useCompoundContext } from "./context";
-
-export interface ItemProps {
-    id: string;
+    if (!isActive) return null;
+    return <div>{props.children}</div>;
 }
 
-export function Item(props: ItemProps) {
-    const { state, actions } = useCompoundContext();
-
-    /*
-        - Reads from shared state
-        - Emits actions
-        - No prop drilling
-        - No awareness of other children
-    */
-
-    return null;
-}
-```
-
-#### Another Child
-
-```tsx
-// Trigger.tsx
-import { useCompoundContext } from "./context";
-
-export interface TriggerProps {}
-
-export function Trigger(props: TriggerProps) {
+export function Trigger(props: { id: string; children: React.ReactNode }) {
     const { actions } = useCompoundContext();
-
-    /*
-        Emits coordination signals into the shared system.
-    */
-
-    return null;
+    return (
+        <button
+            type="button"
+            onClick={() => actions.dispatch({ type: "select", id: props.id })}
+        >
+            {props.children}
+        </button>
+    );
 }
-```
-
-#### Public API Assembly
-
-```tsx
-// index.ts
-import { Root } from "./Root";
-import { Item } from "./Item";
-import { Trigger } from "./Trigger";
 
 export const Compound = {
     Root,
@@ -217,18 +129,14 @@ export const Compound = {
 };
 ```
 
-#### Consumer Usage Pattern
-
 ```tsx
-// Parent.tsx
-import { Compound } from "./compound";
-
 export function Parent() {
     return (
         <Compound.Root>
-            <Compound.Trigger />
-            <Compound.Item id="a" />
-            <Compound.Item id="b" />
+            <Compound.Trigger id="a">Show A</Compound.Trigger>
+            <Compound.Trigger id="b">Show B</Compound.Trigger>
+            <Compound.Item id="a">Panel A</Compound.Item>
+            <Compound.Item id="b">Panel B</Compound.Item>
         </Compound.Root>
     );
 }
@@ -241,21 +149,27 @@ export function Parent() {
 - Elegant APIs
 - Flexible composition
 - No prop drilling
-
 #### Costs
 - Implicit coupling via context
 - Harder to statically analyze
 - Shared re-render scope
-
 #### System-Level Considerations
 - Context boundaries remain local and predictable
 - Contracts must be documented clearly to avoid misuse
 - Works well for
-  - Menu
-  - Tab
-  - Accordion
-  - Modals with slots
+- Menu
+- Tab
+- Accordion
+- Modals with slots
 - In large systems, compound roots often delegate logic to hooks
-
-### Related Concepts
-TBD
+### Related Patterns
+- Slots and Composition
+- Render Props
+- Hooks
+## Summary
+- Shared state is centralized in a root while layout stays consumer-controlled
+- Context-based wiring removes prop drilling but introduces implicit coupling
+- Best for cohesive subcomponents that must coordinate without global state
+## Next Steps
+- Compare with Slots and Composition for layout-first extensibility
+- Consider Render Props when consumers need full render control

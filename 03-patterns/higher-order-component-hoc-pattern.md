@@ -1,35 +1,23 @@
-# Higher Order Component—HOC Pattern
+# Higher-Order Component (HOC) Pattern
 
-## Problem Signal
-- Repeating identical wrapper logic across multiple components leads to structural duplication, higher maintenance cost, and inconsistent behavior over time.
-- Injecting shared data or callbacks directly through props forces presentational components to accept responsibilities outside their rendering scope, eroding their role purity. 
-- Manually composing behavioral wrappers at usage sites increases verbosity and obscures intent, weakening declarative readability at the component boundary.
-- Without a formal abstraction, injected props lack compiler-enforced guarantees, requiring consumers to manually satisfy contracts that should be implicit and type-safe.
-- Scaling cross-cutting concerns through ad-hoc composition expands component APIs unnecessarily and increases the risk of prop collisions and misuse.
+## Problem Signals
+- Shared wrapper logic is repeated across components, causing duplication and drift
+- Injected props erode presentational purity and obscure intent at usage sites
+- Without a formal abstraction, injected props lack type guarantees and risk collisions
 
 ## Core Idea
 A Higher-Order Component is a function that takes a component and returns a new component with additional behavior injected at the boundary.
 
 This allows shared logic to be composed structurally, without modifying the wrapped component or polluting its public API.
 
-HOCs preserve declaretive usage, enforce type-safe prop injection, and enable behavioral reuse while keeping wrapped components dumb annd presentation-focused.
+HOCs preserve declarative usage, enforce type-safe prop injection, and enable behavioral reuse while keeping wrapped components dumb and presentation-focused.
 
-They are most effective for cross-cutting concerns that must be applied consistently acroos multiple components.
+They are most effective for cross-cutting concerns that must be applied consistently across multiple components.
 
-## Evidence & Implementation
+## Reference Details
 
 ### Definition
-A Higher-Order Component is a function of the form:
-```text
-(Component) -> EnhancedComponent
-```
-The returned component:
-- Injects additional props or behavior
-- Sheilds consumers from internal wiring
-- Preserves the wrapped component's role and intent
-TypeScript is used to:
-- Enforce correct prop injection
-- Prevent consumers from supplying injected props manually
+A Higher-Order Component is a function of the form `(Component) -> EnhancedComponent`. The returned component injects additional props or behavior, shields consumers from internal wiring, and preserves the wrapped component's role and intent. TypeScript enforces correct prop injection and prevents consumers from supplying injected props manually.
 
 ### When to Use
 
@@ -39,8 +27,7 @@ TypeScript is used to:
 - Declarative usage should remain clean and intention-revealing
 - Enforcing prop ownership and injection
 - Cross-cutting concerns must be applied uniformly (auth, data, feature flags)
-
-### Avoid When
+### When to Avoid
 
 - Behavior is localized and unlikely to be reused
 - Logic depends heavily on component internals
@@ -48,17 +35,16 @@ TypeScript is used to:
 - Wrapper depth becomes excessive and obscures the tree
 - Ref forwarding or instance access is required frequently
 - Fine-grained control over render timing
-
 ### Mechanics
 
 1. **Encapsulation Strategy:** Behavioral logic is isolated at the HOC boundary to prevent leakage into component implementations, preserving separation of concerns
 2. **Prop Ownership Model:** The HOC exclusively owns injected props, removing them from the consumer contract via type-level exclusion (`Omit`, generics)
 3. **Usage Model Stability:** Enhanced components are consumed identically to standard components, preserving declarative rendering
-4. **Role Isolation:** Components retain a single responsibility; rendering based on received props 
+4. **Role Isolation:** Components retain a single responsibility; rendering based on received props
 5. **Static Guarantees:** The type system prevents consumer override of injected props and enforces their availability internally
-6. **Composable Abstractions:** Behavioral layers can be stacked in a controlled and predictable manner to build higher-level abstractions 
+6. **Composable Abstractions:** Behavioral layers can be stacked in a controlled and predictable manner to build higher-level abstractions
 
-### Implementation
+### TypeScript Example
 
 #### Injected Contract (Explicit Boundary)
 
@@ -73,7 +59,6 @@ Injected props must be:
 - explicit
 - isolated
 - typed
-
 #### Generic HOC Factory
 ```tsx
 // createHOC.tsx
@@ -112,7 +97,6 @@ export function createHOC<TInjected>(
 - Wrapped components stay deterministic
 - No prop drilling
 - No container explosion
-
 #### Domain-Agnostic Injection Source
 
 ```tsx
@@ -157,7 +141,7 @@ export function View(props: ViewProps) {
 }
 ```
 
-#### HOC Asssembly
+#### HOC Assembly
 
 ```tsx
 // enhance.tsx
@@ -190,31 +174,37 @@ export function Parent() {
 
 ### Scalability Notes
 
-How the Uncontrolled pattern behaves at scale:
+How the HOC pattern behaves at scale:
 
 #### Strengths
 
-- Abstraction shared behavior without duplicating logic
+- Abstract shared behavior without duplicating logic
 - Enforce presentational component purity (no side effects, no data access)
 - Inject cross-cutting concerns at the component boundary (auth, data, permissions, analytics)
 - Preserve declarative component usage at call sites
 - Provide strong compile-time guarantees via generic constraints and injected prop typing
 - Enable stable, reusable APIs independent of component internals
-
 #### Costs
 
 - Introduce additional indirection during debugging and error tracing
-- Requires explicit ref forwarding `forwardRef` when refs must pass through
-- Wrapper stacking can reduce readablity and increase cognitive load
+- Requires explicit ref forwarding (`forwardRef`) when refs must pass through
+- Wrapper stacking can reduce readability and increase cognitive load
 - Name collisions between injected and consumer props must be explicitly prevented
 - Component display names may degrade without manual assignment
-
 #### System-Level Considerations
 
 - Prefer HOCs for cross-component, boundary-level concerns
 - Limit HOC depth in performance-critical render paths
 - Ensure injected props are stable (memoized) to avoid unnecessary re-renders
 - Consider hooks or render props when behavior is instance-specific or highly dynamic
-
-### Related Concepts
-TBD
+### Related Patterns
+- Hooks
+- Render Props
+- Container-Presentation Components
+## Summary
+- HOCs inject behavior at the component boundary without modifying wrapped components
+- Strong typing prevents consumers from supplying injected props directly
+- Overuse can add indirection and make the tree harder to debug
+## Next Steps
+- Prefer Hooks for instance-level logic reuse
+- Consider Render Props when consumers need explicit render control

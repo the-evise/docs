@@ -1,9 +1,8 @@
-# Uncontrolled Components Pattern
+# Container-Presentation Components Pattern
 
-## Problem Signal
-
-- UI components accumulate data fetching, state transitions, side effects, and rendering logic in a single unit
-- Visual components become difficult to reuse due to hidden dependencies on business logic
+## Problem Signals
+- UI components mix data fetching, state, side effects, and rendering in one unit
+- Visual components depend on business logic and become hard to reuse
 - Testing UI behavior requires mocking unrelated state and effects
 
 ## Core Idea
@@ -13,12 +12,10 @@ Container components own data acquisition, state management, and side effects, w
 
 This separation improves reuse, testability, and long-term maintainability, especially in TypeScript-heavy and large-scale React systems.
 
-## Evidence & Implementation
+## Reference Details
 
 ### Definition
-A design pattern where:
-- Container components manage state, effects, and data flow.
-- Presentation components receive data and callbacks via props and remain stateless or minimally stateful.
+A design pattern where container components manage state, effects, and data flow, while presentation components receive data and callbacks via props and remain stateless or minimally stateful.
 
 ### When to Use
 
@@ -26,8 +23,7 @@ A design pattern where:
 - Business logic is expected to change frequently while the UI structure remains stable
 - UI components must support isolated unit testing without dependency or side effect initialization
 - Clear, explicit, and type-safe boundaries are required between the view layer and the business logic layer
-
-### Avoid When
+### When to Avoid
 
 - Component scope is intentionally small and localized
 - Component responsibilities are stable and not expected to expand
@@ -35,23 +31,20 @@ A design pattern where:
 - Additional abstraction would reduce clarity or increase cognitive overhead
 - Prop drilling or indirection would increase render frequency or reconciliation cost
 
-
 ### Mechanics
 
 1. The container:
    - Fetches or derives data
-   - Owns state transitions
-   - Defines event handlers
-
+- Owns state transitions
+- Defines event handlers
 2. The presentation component:
     - Receives fully prepared props
-    - Emits events via callbacks
-    - Contains no side effects or data access
-
+- Emits events via callbacks
+- Contains no side effects or data access
 3. TypeScript enforces the contract between the two layers
    
 
-### Implementation
+### TypeScript Example
 
 ```tsx
 // Container.tsx
@@ -117,10 +110,18 @@ export function Parent() {
 - Containers can be composed, replaced or tested independently
 - Presentation components remain stable across refactors
 - Works well with:
-  - Feature-based folder structures
-  - Domain-driven architectures
-  - Server-state libraries (React Query, SWR)
+- Feature-based folder structures
+- Domain-driven architectures
+- Server-state libraries (React Query, SWR)
 - In larger systems, containers often collapse into hooks, preserving the same separation
-
-### Related Concepts
-TBD
+### Related Patterns
+- Hooks
+- Higher-Order Components (HOC)
+- Render Props
+## Summary
+- Split behavior (container) from rendering (presentation) to reduce coupling
+- Clear boundaries improve testability and reuse across data sources
+- Overuse adds indirection, so keep the split purposeful
+## Next Steps
+- Consider Hooks when behavior can be shared without wrappers
+- Compare with HOCs for cross-cutting concerns
